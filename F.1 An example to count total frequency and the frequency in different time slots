@@ -1,0 +1,50 @@
+import pandas as pd
+from pandas import Series, DataFrame
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
+import seaborn as sns
+import matplotlib.pyplot as plt
+sns.set(style='darkgrid')
+
+dateCols = ['Timestamp']
+df = pd.read_csv('D:\Thesis\Finaldata\8.4.csv', parse_dates=dateCols)
+df.drop(['File', 'Collection', 'Latitude', 'Longitude'], axis=1, inplace=True)  # Drop unwanted columns
+
+times = df.Timestamp
+df_group = df.groupby([times.dt.date, times.dt.hour, 'Auto Class 1']).agg(
+    {'Auto Class 1 Calls': 'sum', 'Auto Class 1 Conf': 'mean'})
+df_group.reset_index(level=0, inplace=True)  # remove first index/reset
+df_group = df_group.rename(columns={'Timestamp': 'Time'})
+df_group.reset_index(level=0, inplace=True)  # remove first index/reset
+df_group.reset_index(level=0, inplace=True)  # remove second index/reset #
+df_group.head()  # df_group.info()
+
+def set_hour(Time, Timestamp):
+    return Time.replace(hour=Timestamp)
+
+df_group['Time'] = pd.to_datetime(df_group['Time'])
+df_group['Timer'] = df_group.apply(lambda x: set_hour(x['Time'], x['Timestamp']), axis=1)
+df_group['Timer'] = pd.to_datetime(df_group['Timer'])  # Convert to datetime
+df_group.drop(['Timestamp', 'Time'], axis=1, inplace=True)  # Drop unwanted columns
+df_group = df_group.rename(
+columns={'Auto Class 1': 'Species', 'Auto Class 1 Calls': 'Total Calls', 'Auto Class 1 Conf': 'Mean Confidence'})
+print(df_group.head(10))  # Final processed data form
+
+df_group.info()
+plt.figure(figsize=(16, 6))
+sns.set(font_scale=1.5)
+sns.lineplot(x='Timer', y='Total Calls', hue='Species', data=df_group)
+plt.show()
+
+plt.figure(figsize=(16, 6))
+sns.lineplot(x='Timer', y='Mean Confidence', hue='Species', data=df_group)
+sns.set(font_scale=1.5)
+plt.show()
+
+# Group by species
+df_speciesgroup = df_group.groupby(['Species']).agg({'Total Calls': 'sum', 'Mean Confidence': 'mean'})
+
+df_speciesgroup.sort_values(by='Total Calls', ascending=False)
+plot = df_speciesgroup.plot.pie(y='Total Calls', figsize=(9, 9), title='Activity by species')
+sns.set(font_scale=1.5)
+plt.show()
