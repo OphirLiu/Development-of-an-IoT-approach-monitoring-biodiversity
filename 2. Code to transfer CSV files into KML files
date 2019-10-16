@@ -1,0 +1,20 @@
+import pandas as pd
+import simplekml
+kml = simplekml.Kml()
+
+colnames = ['col'+str(i) for i in range(25)]
+
+data_in = pd.read_csv("D:/BatScope 4/1.csv", header=None, dtype=object, names=colnames)
+
+data_in_sorted = data_in.sort_values(['col1','col0']) # sort source file by id then timestamp
+
+data_in_grouped = data_in_sorted.groupby('col1') # now group the df by id
+
+for group_name, df_group in data_in_grouped: # then for each id group
+
+       ls = kml.newlinestring(name=group_name)  # create a new linestring, named by group
+       ls.style.linestyle.color = 'e600ff00'    # styling (currently all same - but see https://matplotlib.org/cycler/)
+       ls.style.linestyle.width= 2              # 2 pixels wide
+       df_group.apply(lambda X: kml.newpoint(name=X["col1"], description=X["col0"], coords=[( X["col4"],X["col3"])]) ,axis=1) # coordinates for linestring
+       df_group.apply(lambda X: ls.coords.addcoordinates([(X["col4"], X["col3"])]), axis=1) # add points
+kml.save(path = "data.kml") # output the kml file
